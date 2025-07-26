@@ -1,0 +1,3 @@
+PumpkinLaugh = "sounds/pumpkin/snd_jackolantern_laugh.wav"
+YOURTAKINGTOOLONG = "sounds/pumpkin/snd_taking_too_long.wav"
+$limit PumpkinLaugh 4

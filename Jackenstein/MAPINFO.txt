@@ -1,0 +1,5 @@
+GameInfo
+{
+    AddEventHandlers = "MyEventHandler"
+	AddEventHandlers = "JGP_HudMessageHandler"
+}
