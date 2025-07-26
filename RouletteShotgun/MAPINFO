@@ -1,0 +1,5 @@
+GameInfo
+{
+    AddEventHandlers = "ReplaceShellsHandler"
+	weaponslot = 3, "RouletteShotgun"
+}

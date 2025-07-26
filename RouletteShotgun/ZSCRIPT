@@ -1,0 +1,166 @@
+version "4.2"
+
+class ReplaceShellsHandler : EventHandler
+{
+	override void CheckReplacement(ReplaceEvent e)
+	{
+		let cls = e.Replacee;
+		let replaceshellornah = random(0,1);
+		if (cls == 'Shell' || cls == 'ShellBox' && replaceshellornah == 1)
+		{
+			e.Replacement = 'BlankShell';
+		}
+	}
+}
+
+class LiveShellEjected : Actor
+{
+	Default
+	{
+		Radius 4;
+		Height 15;
+		Mass 10;
+		Scale 0.2;
+		BounceType "DOOM";
+	   -CANBOUNCEWATER
+	   - NOGRAVITY
+	   +WINDTHRUST
+	   +CLIENTSIDEONLY
+	   +MOVEWITHSECTOR
+	   +MISSILE
+	   +NOBLOCKMAP
+	   -DROPOFF
+	   +NOTELEPORT
+	   +FORCEXYBILLBOARD
+	   +NOTDMATCH
+	   +GHOST
+	   BounceFactor 0.3;
+	}
+	States
+	{
+	Spawn:
+		LVSH A 1 Bright;
+		Loop;
+	}
+}
+
+class BlankShell : Ammo
+{
+	Default
+	{
+		Inventory.PickupMessage "Picked up 4 blank rounds.";
+		Inventory.Amount 4;
+		Inventory.MaxAmount 50;
+		Ammo.BackpackAmount 16;
+		Ammo.BackpackMaxAmount 100;
+		Inventory.Icon "BSHLA0";
+	}
+	States
+		{
+		Spawn:
+			BSHL A -1;
+			Stop;
+		}	
+}
+
+class LiveShell : Shell Replaces Shell
+{
+	Default
+	{
+		Inventory.PickupMessage "Picked up 4 live rounds.";
+	}
+}
+
+class ShotgunGuyWithBlankDrop : ShotgunGuy replaces ShotgunGuy
+{
+	Default
+	{
+		Dropitem "LiveShell", 127;
+		Dropitem "BlankShell", 127;
+	}
+}
+
+class RouletteShotgun : DoomWeapon
+{
+	int LiveOrNah;
+	int TotalShells;
+	bool Blank;
+	action void A_FireRouletteShotgun(){
+		//Finds number of total shells.
+		invoker.TotalShells = CountInv("BlankShell") + CountInv("Shell");
+		invoker.LiveOrNah = random(1,invoker.TotalShells);
+		invoker.Blank = false;
+		//Uses RNG to figure out which type of shell it will shoot, if the number generated is less than or equal to the number of live shells, it's live.
+		//Example: 2 Live rounds, 4 Blank rounds, 6 total rounds. if the number rolled is 1 or 2, then its live.
+		if (invoker.LiveOrNah <= CountInv("Shell") && CountInv("Shell") > 0)
+		{
+			A_Live();
+		}
+		else if (invoker.LiveOrNah >= CountInv("Shell") && CountInv("BlankShell") > 0)
+		{
+			A_Blank();
+		}
+	//No Blank Shells and have live shells? Shoot Live shells
+		else if (CountInv("BlankShell") == 0 && CountInv("Shell") > 0)
+		{
+			A_Live();
+		}
+	//No Live Shells and have blank shells? Shoot blank shells
+		else if (CountInv("Shell") == 0 && CountInv("BlankShell") > 0)
+		{
+			A_Blank();
+		}
+	}
+	action void A_Live(){
+		A_SpawnProjectile("LiveShellEjected",45,0,90);
+		A_FireShotgun();
+		invoker.Blank = false;
+		A_Quake(3,10,0,400);
+		A_Recoil(5);
+	}
+	action void A_Blank(){
+		invoker.DepleteAmmo(true, true);
+		A_StartSound("BLANKSHOT", CHAN_WEAPON);
+		invoker.Blank = true;
+	}
+	Default
+	{
+		Weapon.SlotNumber 3;
+		Weapon.AmmoGive 0;
+		Weapon.AmmoType1 "Shell";
+		Weapon.AmmoUse1 1;
+		Weapon.AmmoType2 "BlankShell";
+		Weapon.AmmoUse2 1;
+		+WEAPON.AMMO_CHECKBOTH
+		+WEAPON.ALT_AMMO_OPTIONAL
+	}
+	States
+	{
+		Ready:
+			SHTG A 1 A_WeaponReady;
+			Loop;
+		Deselect:
+			SHTG A 1 A_Lower;
+			Loop;
+		Select:
+			SHTG A 1 A_Raise;
+			Loop;
+		Fire:
+			SHTG A 3;
+			SHTG A 1 A_FireRouletteShotgun;
+			SHTG A 1 A_JumpIf(invoker.Blank == true, "Blank");
+			Goto Live;
+		Flash:
+			SHTF AA 1 Bright A_WeaponOffset(0, 3.0, WOF_ADD);
+			SHTF BBBB 1 Bright A_WeaponOffset(0, -1.5, WOF_ADD);
+			Goto LightDone;
+		Live:
+			SHTG AAA 1 A_WeaponOffset(0, 12.0, WOF_ADD);
+			SHTG AAAAAA 1 A_WeaponOffset(0, -6, WOF_ADD);
+			Goto Ready;
+		Blank:
+			SHTG AAA 1 A_WeaponOffset(0, 3.0, WOF_ADD);
+			SHTG AAAAAA 1 A_WeaponOffset(0, -1.5, WOF_ADD);
+			Goto Ready;
+	}
+}
