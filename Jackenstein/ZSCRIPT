@@ -1,0 +1,73 @@
+version "4.8"
+
+#include "ZSHudmsg/hudmsg.zs"
+
+class MyEventHandler : EventHandler
+{
+	bool TakingTooLong;
+	int PumpkinTime;
+	override void PlayerSpawned (PlayerEvent e)
+	{
+		PumpkinTime =  level.ParTime * 35;
+		TakingTooLong = false;
+	}
+	override void WorldTick()
+	{
+		if (level.MapTime == PumpkinTime)
+		{
+			TakingTooLong = true;
+			S_StartSound("YOURTAKINGTOOLONG",CHAN_AUTO);
+		}
+		if (level.MapTime == PumpkinTime + 70)
+		{
+			Actor.Spawn("Pumpkin", level.PickPlayerStart(1, 0));
+		}
+	}
+	override void RenderOverlay(RenderEvent e)
+	{
+		if (TakingTooLong == true)
+		{
+			Statusbar.BeginHUD();
+			JGP_HudMessage.CreateUI("YOUR TAKING TOO LONG",0,'OriginalBigFont',Font.CR_Red,(160,50),JGP_HudMessage.ALIGN_CENTER,0,3,0,0,(1,1));
+			Statusbar.DrawImage("YTTLA0", (0, -75), Statusbar.DI_SCREEN_CENTER|Statusbar.DI_ITEM_CENTER,1,(-1,-1),(0.5,0.5));
+		}
+	}
+}
+
+class Pumpkin : Demon
+{
+	Default
+	{
+		Speed 20;
+		SeeSound "PumpkinLaugh";
+		AttackSound "PumpkinLaugh";
+		ActiveSound "PumpkinLaugh";
+		+FLOAT
+		+SEEKERMISSILE
+		+NOGRAVITY
+		+DONTFALL
+		+NOICEDEATH
+		+INVULNERABLE
+		+NOINFIGHTING
+		+NOCLIP
+		+LOOKALLAROUND
+		+BILLBOARDFACECAMERA
+	}
+	States
+	{
+	Spawn:
+		YTTL AB 10 A_Look;
+		Loop;
+	See:
+		YTTL AABB 2 A_Chase;
+		Loop;
+	Melee:
+		FBXP A 8 BRIGHT{
+		A_Explode(999,70);
+		A_StartSound("weapons/rocklx");
+		}
+		FBXP B 6 BRIGHT;
+		FBXP C 4 BRIGHT;
+		Stop;
+	}
+}
